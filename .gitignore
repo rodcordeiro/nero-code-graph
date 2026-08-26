@@ -1,0 +1,17 @@
+# Nero Code Graph output (gitignored in pilot checkout)
+.nero-code-graph/
+graphify-out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# .NET (if custom path later)
+bin/
+obj/
+
+# IDE
+.vs/
+.idea/
