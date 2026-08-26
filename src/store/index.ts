@@ -8,3 +8,10 @@ export {
   isPathInsideRoot,
   type ProjectArtifactStoreOptions,
 } from "./project-artifact-store.js";
+export {
+  DualGraphStore,
+  KnowledgeMirrorStore,
+  MANIFEST_KIND,
+  type CodeGraphManifest,
+  type KnowledgeMirrorStoreOptions,
+} from "./knowledge-mirror-store.js";

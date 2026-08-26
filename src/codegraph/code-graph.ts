@@ -17,8 +17,12 @@ export type CodeGraphOptions = {
   extractor: Extractor;
   store: GraphStore;
   backend?: StorageMode;
-  /** When set, compare to doc.gitCommit / fingerprint for stale. */
+  /** When set, compare to doc.gitCommit for stale. */
   currentGitCommit?: string;
+  /**
+   * When true, query tools refuse stale graphs unless `allowStale` is passed.
+   * Default false (stale is always visible on the envelope).
+   */
   strictFreshness?: boolean;
 };
 
@@ -38,6 +42,11 @@ export type NeighborQuery = {
   direction?: "outgoing" | "incoming" | "both";
   relationFilter?: EdgeKind[];
   provenanceFilter?: Provenance[];
+  allowStale?: boolean;
+};
+
+export type QueryOptions = {
+  allowStale?: boolean;
 };
 
 function contentHash(doc: GraphDocument): string {
@@ -71,6 +80,9 @@ export class CodeGraph {
     rootLabel: string;
   }): Promise<GraphDocument> {
     const doc = await this.extractor.extract(input);
+    if (this.currentGitCommit) {
+      doc.gitCommit = this.currentGitCommit;
+    }
     doc.stats = {
       nodeCount: doc.nodes.length,
       edgeCount: doc.edges.length,
@@ -97,22 +109,19 @@ export class CodeGraph {
       nodeCount: doc.nodes.length,
       edgeCount: doc.edges.length,
       extractorId: doc.extractorId,
-      stale: this.isStale(doc),
+      stale: await this.isStale(doc),
       backend: this.backend,
     };
   }
 
   async getNode(
     nodeId: string,
+    options?: QueryOptions,
   ): Promise<QueryResponse<{ node: GraphNode } | { error: string }>> {
     const doc = await this.requireDoc();
-    const envelope = this.envelope(doc);
-    if (this.strictFreshness && envelope.stale) {
-      return {
-        envelope,
-        payload: { error: "graph_stale" },
-      };
-    }
+    const envelope = await this.envelope(doc);
+    const blocked = this.refuseIfStale(envelope, options?.allowStale);
+    if (blocked) return blocked;
     const node = doc.nodes.find((n) => n.id === nodeId);
     if (!node) {
       return { envelope, payload: { error: "node_not_found" } };
@@ -124,10 +133,9 @@ export class CodeGraph {
     query: NeighborQuery,
   ): Promise<QueryResponse<{ hops: QueryHop[] } | { error: string }>> {
     const doc = await this.requireDoc();
-    const envelope = this.envelope(doc);
-    if (this.strictFreshness && envelope.stale) {
-      return { envelope, payload: { error: "graph_stale" } };
-    }
+    const envelope = await this.envelope(doc);
+    const blocked = this.refuseIfStale(envelope, query.allowStale);
+    if (blocked) return blocked;
     const direction = query.direction ?? "both";
     const hops: QueryHop[] = [];
     for (const edge of doc.edges) {
@@ -161,12 +169,12 @@ export class CodeGraph {
   async shortestPath(
     sourceId: string,
     targetId: string,
+    options?: QueryOptions,
   ): Promise<QueryResponse<{ hops: QueryHop[] } | { error: string }>> {
     const doc = await this.requireDoc();
-    const envelope = this.envelope(doc);
-    if (this.strictFreshness && envelope.stale) {
-      return { envelope, payload: { error: "graph_stale" } };
-    }
+    const envelope = await this.envelope(doc);
+    const blocked = this.refuseIfStale(envelope, options?.allowStale);
+    if (blocked) return blocked;
     const adj = new Map<string, GraphEdge[]>();
     for (const edge of doc.edges) {
       const list = adj.get(edge.from) ?? [];
@@ -208,12 +216,12 @@ export class CodeGraph {
 
   async queryGraph(
     question: string,
+    options?: QueryOptions,
   ): Promise<QueryResponse<{ hops: QueryHop[]; matchedNodeIds: string[] } | { error: string }>> {
     const doc = await this.requireDoc();
-    const envelope = this.envelope(doc);
-    if (this.strictFreshness && envelope.stale) {
-      return { envelope, payload: { error: "graph_stale" } };
-    }
+    const envelope = await this.envelope(doc);
+    const blocked = this.refuseIfStale(envelope, options?.allowStale);
+    if (blocked) return blocked;
     const tokens = question
       .toLowerCase()
       .split(/[^a-z0-9_#./:-]+/i)
@@ -252,17 +260,37 @@ export class CodeGraph {
     return doc;
   }
 
-  private isStale(doc: GraphDocument): boolean {
-    if (!this.currentGitCommit || !doc.gitCommit) return false;
-    return this.currentGitCommit !== doc.gitCommit;
+  private refuseIfStale(
+    envelope: QueryEnvelope,
+    allowStale?: boolean,
+  ): QueryResponse<{ error: string }> | null {
+    if (this.strictFreshness && envelope.stale && !allowStale) {
+      return { envelope, payload: { error: "graph_stale" } };
+    }
+    return null;
   }
 
-  private envelope(doc: GraphDocument): QueryEnvelope {
+  private async isStale(doc: GraphDocument): Promise<boolean> {
+    if (
+      this.currentGitCommit &&
+      doc.gitCommit &&
+      this.currentGitCommit !== doc.gitCommit
+    ) {
+      return true;
+    }
+    if (this.extractor.fingerprint && doc.sourceFingerprint) {
+      const live = await this.extractor.fingerprint();
+      if (live !== doc.sourceFingerprint) return true;
+    }
+    return false;
+  }
+
+  private async envelope(doc: GraphDocument): Promise<QueryEnvelope> {
     return {
       repoKey: doc.target.repoKey,
       sourceFingerprint: doc.sourceFingerprint,
       gitCommit: doc.gitCommit,
-      stale: this.isStale(doc),
+      stale: await this.isStale(doc),
       backend: this.backend,
       contentHash: contentHash(doc),
       schemaVersion: GRAPH_SCHEMA_VERSION,

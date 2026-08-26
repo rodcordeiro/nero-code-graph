@@ -15,8 +15,15 @@
 | `NCG_ALLOWED_ROOTS` | Allowlist, `:` / `;` separated (default = bound root) |
 | `NCG_ENABLE_MUTATIONS` | `true` to allow `cg_generate_graph` (default off) |
 | `NCG_REPO_KEY` | repoKey in status/list |
-| `NCG_GIT_COMMIT` | Optional HEAD for stale checks |
+| `NCG_GIT_COMMIT` | Optional HEAD for stale checks (stamped on rebuild) |
+| `NCG_STRICT_FRESHNESS` | `true` → queries refuse when stale unless `allowStale` |
+| `NCG_KNOWLEDGE_ROOT` | Optional KR root; with `NCG_MIRROR_BLOB_ROOT` enables dual write |
+| `NCG_MIRROR_BLOB_ROOT` | Opaque GraphDocument root **outside** KR (Q13) |
+| `NCG_KNOWLEDGE_MANIFEST_PATH` | Relative Manifest path under KR (default `knowledge/projects/local/code-graph.manifest.json`) |
+| `NCG_USE_FIXTURE_EXTRACTOR` | `true` → FixtureExtractor instead of TS AST (dev) |
 | `NCG_FIXTURE_GOLDEN` | Override FixtureExtractor golden path (dev) |
+
+When knowledge mirror is enabled, rebuild dual-writes: project `.nero-code-graph/graph.json` + Manifest in KR + opaque blob under `NCG_MIRROR_BLOB_ROOT`. Manifest never contains nodes/edges/`links:`.
 
 HTTP MCP: fora do MVP.
 

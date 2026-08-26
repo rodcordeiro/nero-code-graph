@@ -90,17 +90,23 @@ export class CodeGraphMcpHost {
     });
   }
 
-  async cg_query_graph(args: { question: string }) {
+  async cg_query_graph(args: { question: string; allowStale?: boolean }) {
     try {
-      return jsonResult(await this.cg.queryGraph(args.question));
+      return jsonResult(
+        await this.cg.queryGraph(args.question, {
+          allowStale: args.allowStale,
+        }),
+      );
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
     }
   }
 
-  async cg_get_node(args: { nodeId: string }) {
+  async cg_get_node(args: { nodeId: string; allowStale?: boolean }) {
     try {
-      return jsonResult(await this.cg.getNode(args.nodeId));
+      return jsonResult(
+        await this.cg.getNode(args.nodeId, { allowStale: args.allowStale }),
+      );
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
     }
@@ -111,6 +117,7 @@ export class CodeGraphMcpHost {
     direction?: "outgoing" | "incoming" | "both";
     relationFilter?: EdgeKind[];
     provenanceFilter?: Provenance[];
+    allowStale?: boolean;
   }) {
     try {
       return jsonResult(await this.cg.getNeighbors(args));
@@ -119,10 +126,16 @@ export class CodeGraphMcpHost {
     }
   }
 
-  async cg_shortest_path(args: { sourceId: string; targetId: string }) {
+  async cg_shortest_path(args: {
+    sourceId: string;
+    targetId: string;
+    allowStale?: boolean;
+  }) {
     try {
       return jsonResult(
-        await this.cg.shortestPath(args.sourceId, args.targetId),
+        await this.cg.shortestPath(args.sourceId, args.targetId, {
+          allowStale: args.allowStale,
+        }),
       );
     } catch (e) {
       return errorResult(e instanceof Error ? e.message : String(e));
@@ -137,10 +150,12 @@ export const generateSchema = {
 
 export const querySchema = {
   question: z.string(),
+  allowStale: z.boolean().optional(),
 };
 
 export const nodeSchema = {
   nodeId: z.string(),
+  allowStale: z.boolean().optional(),
 };
 
 export const neighborsSchema = {
@@ -152,9 +167,11 @@ export const neighborsSchema = {
   provenanceFilter: z
     .array(z.enum(["EXTRACTED", "INFERRED", "AMBIGUOUS"]))
     .optional(),
+  allowStale: z.boolean().optional(),
 };
 
 export const pathSchema = {
   sourceId: z.string(),
   targetId: z.string(),
+  allowStale: z.boolean().optional(),
 };

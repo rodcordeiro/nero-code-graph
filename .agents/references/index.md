@@ -9,6 +9,7 @@
 | [patterns.md](./patterns.md) | Padrões locais pretendidos |
 | [contracts.md](./contracts.md) | Tools MCP e GraphDocument |
 | [security.md](./security.md) | Allowlist, redaction, freshness |
+| [routing.md](./routing.md) | Quando usar este MCP vs Nero vs filesystem |
 | [tech-debt.md](./tech-debt.md) | Gaps vs guideline mcp |
 
 Engineering skills (issue tracker / triage / CONTEXT consumers): `docs/agents/`.

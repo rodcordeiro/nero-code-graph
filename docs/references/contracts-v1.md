@@ -31,6 +31,7 @@ Canonical TypeScript types: `src/contracts/`. Golden fixture: `fixtures/minimal/
 ## StorageLocation / RebuildPolicy
 
 - Modes: `project_artifact` (default `.nero-code-graph/graph.json`) \| `knowledge_mirror` (Manifest in KR git; blob out of KR git — Q13)
+- Manifest (`kind: code-graph-manifest`): fingerprint, builtAt, primaryLocation relative path, counts — **no** nodes/edges/`links:`
 - Rebuild MVP: `trigger` explicit or fingerprint mismatch; `codeOnly: true`
 
 ## QueryEnvelope (every query response)

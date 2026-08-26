@@ -4,34 +4,37 @@ Pack **nero-core** (domínio `mcp`): MCP de code-graph estrutural — gera, gere
 
 | | |
 | --- | --- |
-| **Status** | Bootstrap / spec (implementação pendente) |
-| **Entrypoint** | A definir (MCP stdio) — ver `.agents/references/runtime.md` |
-| **Stack alvo** | MCP stdio + núcleo CodeGraph; extractor code-only pluggable (Graphify adapter candidato) |
+| **Status** | MVP Iteration 1 — CodeGraph + TS Extractor + MCP stdio + freshness + optional knowledge_mirror |
+| **Entrypoint** | `npm run mcp` — ver `.agents/references/runtime.md` |
+| **Stack** | MCP stdio + núcleo CodeGraph; Extractor TS AST (fixture opt-in) |
 
 ## Como usar este contexto
 
 | Quando | Onde |
 | --- | --- |
 | Identidade e regras rápidas | este `AGENTS.md` |
+| **Consumir o Pack (tools / Nero complement)** | skill `nero-code-graph` (`.cursor/skills/nero-code-graph/`) |
 | Estrutura / runtime / contratos / segurança | `.agents/references/` |
+| Roteamento Nero vs code-graph vs FS | `.agents/references/routing.md` |
 | Guideline domínio MCP | `$nero` → `references/guidelines/mcp-guidelines.md` |
 | Spec e grill | `docs/references/spec-code-graph-pack.md` |
 | Perguntas abertas | `docs/references/open-questions.md` |
-| Backlog (seed → GH) | `docs/backlog/README.md` — canônico: GitHub Issues |
-| Issue tracker / triage / domain-docs skills | `docs/agents/` |
+| Backlog | GitHub Issues — `docs/backlog/README.md` |
+| Issue tracker / triage / domain-docs | `docs/agents/` |
 
 ## Regras rápidas
 
-1. Perguntas estruturais de código (“quem chama/importa X?”) → este MCP; decisões/regras/ops → Nero Knowledge — **não** unificar edges AST em `links:`.
+1. Perguntas estruturais (“quem chama/importa X?”) → MCP `cg_*` / skill `nero-code-graph`; decisões/regras/ops → Nero Knowledge — edges AST fora de `links:` (`routing.md`).
 2. Mudanças localizadas: contratos → núcleo CodeGraph → adapters → MCP host; testes no seam CodeGraph antes de detalhe de extractor.
 3. Pack complementar nero-core — não misturar com knowledge operacional.
-4. Validação: quando houver código, preferir testes do núcleo + smoke MCP stdio (comandos em `runtime.md`).
+4. Validação: `npm test`; smoke MCP em `runtime.md`.
 
 ## Skills condicionais
 
 | Condicao | Skill |
 | --- | --- |
-| Servidor/consumidor MCP | `$nero` + guideline mcp |
+| Who-calls / imports / path / GraphDocument / cg_* | `nero-code-graph` |
+| Servidor/consumidor MCP knowledge / ops | `$nero` + guideline mcp |
 | Knowledge workflow | `$nero` |
 
 ## Agent skills
@@ -50,4 +53,4 @@ Single-context: root `CONTEXT.md` + `docs/adr/` (+ `.agents/references/` for che
 
 ### Iteration / Project board
 
-Nero Scrum board iterations: prefer **current** pending work; new tasks default to **next**. See `docs/agents/iteration-workflow.md`. Hub de coordenação de backlog: `nero-core` (`docs/agents/iteration-workflow.md` lá).
+Nero Scrum board iterations: prefer **current** pending work; new tasks default to **next**. See `docs/agents/iteration-workflow.md`. Hub: `nero-core` (`docs/agents/iteration-workflow.md` lá).

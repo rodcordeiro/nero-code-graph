@@ -4,8 +4,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import {
   CodeGraph,
   FixtureExtractor,
+  TypescriptAstExtractor,
 } from "../codegraph/index.js";
-import { ProjectArtifactStore } from "../store/index.js";
+import { ProjectArtifactStore, DualGraphStore, KnowledgeMirrorStore } from "../store/index.js";
 import { createMcpServer } from "./server.js";
 
 async function main() {
@@ -15,18 +16,39 @@ async function main() {
     .map((s) => s.trim())
     .filter(Boolean);
   const enableMutations = process.env.NCG_ENABLE_MUTATIONS === "true";
+  const useFixture = process.env.NCG_USE_FIXTURE_EXTRACTOR === "true";
   const fixtureGolden =
     process.env.NCG_FIXTURE_GOLDEN ??
     join(dirname(fileURLToPath(import.meta.url)), "../../fixtures/minimal/graph.golden.json");
 
-  const store = new ProjectArtifactStore({
+  const projectStore = new ProjectArtifactStore({
     boundRoot,
     allowedRoots: allowed,
   });
+  const knowledgeRoot = process.env.NCG_KNOWLEDGE_ROOT;
+  const blobRoot = process.env.NCG_MIRROR_BLOB_ROOT;
+  const store =
+    knowledgeRoot && blobRoot
+      ? new DualGraphStore(
+          projectStore,
+          new KnowledgeMirrorStore({
+            knowledgeRoot,
+            blobRoot,
+            allowedRoots: [...allowed, knowledgeRoot, blobRoot],
+            manifestRelativePath: process.env.NCG_KNOWLEDGE_MANIFEST_PATH,
+            primaryRelativePath: ".nero-code-graph/graph.json",
+          }),
+        )
+      : projectStore;
+  const extractor = useFixture
+    ? new FixtureExtractor(fixtureGolden)
+    : new TypescriptAstExtractor({ boundRoot });
   const codeGraph = new CodeGraph({
-    extractor: new FixtureExtractor(fixtureGolden),
+    extractor,
     store,
+    backend: "project_artifact",
     currentGitCommit: process.env.NCG_GIT_COMMIT,
+    strictFreshness: process.env.NCG_STRICT_FRESHNESS === "true",
   });
 
   const server = createMcpServer({
