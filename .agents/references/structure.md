@@ -5,18 +5,18 @@ Checkout factual (2026-08-26):
 ```text
 nero-code-graph/
   AGENTS.md
+  CONTEXT.md
   README.md
-  .gitignore
+  package.json
+  src/contracts/          # schemaVersion 1 types + Node.id
+  fixtures/minimal/       # graph.golden.json
+  tests/contracts/
+  docs/references/
+  docs/agents/
+  docs/backlog/           # seed index → GitHub Issues
   .agents/references/
-  docs/references/     # spec, grill, open-questions, research
-  docs/backlog/        # tickets ready-for-agent
 ```
 
-Ainda **não** existem: entrypoint MCP, pacote de código, testes, diretório de artefato de grafo.
+Ainda **não** existem: entrypoint MCP, CodeGraph core, Extractor/Store adapters reais.
 
-Alvo (guideline mcp / spec):
-
-- host MCP fino
-- núcleo CodeGraph
-- adapters Extractor + GraphStore
-- fixtures + golden
+Alvo: host MCP fino → CodeGraph → Extractor + GraphStore.

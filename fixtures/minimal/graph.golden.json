@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "repoKey": "fixture.minimal",
+    "rootLabel": "fixtures/minimal"
+  },
+  "builtAt": "2026-08-26T00:00:00.000Z",
+  "sourceFingerprint": "fixture-minimal-v1",
+  "gitCommit": "0000000000000000000000000000000000000000",
+  "extractorId": "fake",
+  "extractorVersion": "0.0.0",
+  "nodes": [
+    {
+      "id": "file:src/api/OrdersController.ts#OrdersController.ts",
+      "kind": "file",
+      "name": "OrdersController.ts",
+      "location": { "file": "src/api/OrdersController.ts", "line": 1 }
+    },
+    {
+      "id": "class:src/api/OrdersController.ts#OrdersController",
+      "kind": "class",
+      "name": "OrdersController",
+      "location": { "file": "src/api/OrdersController.ts", "line": 3 }
+    },
+    {
+      "id": "method:src/api/OrdersController.ts#create",
+      "kind": "method",
+      "name": "create",
+      "location": { "file": "src/api/OrdersController.ts", "line": 8 }
+    },
+    {
+      "id": "file:src/orders/OrderService.ts#OrderService.ts",
+      "kind": "file",
+      "name": "OrderService.ts",
+      "location": { "file": "src/orders/OrderService.ts", "line": 1 }
+    },
+    {
+      "id": "class:src/orders/OrderService.ts#OrderService",
+      "kind": "class",
+      "name": "OrderService",
+      "location": { "file": "src/orders/OrderService.ts", "line": 5 }
+    },
+    {
+      "id": "method:src/orders/OrderService.ts#PlaceOrder",
+      "kind": "method",
+      "name": "PlaceOrder",
+      "location": { "file": "src/orders/OrderService.ts", "line": 12 }
+    },
+    {
+      "id": "file:src/payments/IPaymentClient.ts#IPaymentClient.ts",
+      "kind": "file",
+      "name": "IPaymentClient.ts",
+      "location": { "file": "src/payments/IPaymentClient.ts", "line": 1 }
+    },
+    {
+      "id": "class:src/payments/IPaymentClient.ts#IPaymentClient",
+      "kind": "class",
+      "name": "IPaymentClient",
+      "location": { "file": "src/payments/IPaymentClient.ts", "line": 2 }
+    }
+  ],
+  "edges": [
+    {
+      "from": "file:src/api/OrdersController.ts#OrdersController.ts",
+      "to": "class:src/api/OrdersController.ts#OrdersController",
+      "kind": "contains",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/api/OrdersController.ts", "line": 3 }
+    },
+    {
+      "from": "class:src/api/OrdersController.ts#OrdersController",
+      "to": "method:src/api/OrdersController.ts#create",
+      "kind": "method",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/api/OrdersController.ts", "line": 8 }
+    },
+    {
+      "from": "file:src/api/OrdersController.ts#OrdersController.ts",
+      "to": "file:src/orders/OrderService.ts#OrderService.ts",
+      "kind": "imports",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/api/OrdersController.ts", "line": 1 }
+    },
+    {
+      "from": "method:src/api/OrdersController.ts#create",
+      "to": "method:src/orders/OrderService.ts#PlaceOrder",
+      "kind": "calls",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/api/OrdersController.ts", "line": 10 }
+    },
+    {
+      "from": "file:src/orders/OrderService.ts#OrderService.ts",
+      "to": "file:src/payments/IPaymentClient.ts#IPaymentClient.ts",
+      "kind": "imports",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/orders/OrderService.ts", "line": 1 }
+    },
+    {
+      "from": "file:src/orders/OrderService.ts#OrderService.ts",
+      "to": "class:src/orders/OrderService.ts#OrderService",
+      "kind": "contains",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/orders/OrderService.ts", "line": 5 }
+    },
+    {
+      "from": "class:src/orders/OrderService.ts#OrderService",
+      "to": "method:src/orders/OrderService.ts#PlaceOrder",
+      "kind": "method",
+      "provenance": "EXTRACTED",
+      "evidence": { "file": "src/orders/OrderService.ts", "line": 12 }
+    }
+  ],
+  "stats": {
+    "nodeCount": 8,
+    "edgeCount": 7
+  }
+}

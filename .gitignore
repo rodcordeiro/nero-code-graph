@@ -2,6 +2,11 @@
 .nero-code-graph/
 graphify-out/
 
+# Node
+node_modules/
+dist/
+coverage/
+
 # Python
 __pycache__/
 *.pyc

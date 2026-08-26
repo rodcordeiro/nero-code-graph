@@ -1,18 +1,19 @@
 # Contracts
 
-## Tools MCP (MVP — prefixo final: open-questions Q3)
+## schemaVersion 1
 
-| Tool ( Conceito ) | Efeito |
+See `docs/references/contracts-v1.md` and `src/contracts/`.
+
+## Tools MCP (MVP)
+
+| Tool | Efeito |
 | --- | --- |
-| generate / rebuild | Extrai e grava GraphDocument |
-| status / list | Metadados, freshness, backends |
-| query_graph | Subgrafo por pergunta/escopo |
-| get_node | Detalhe do símbolo |
-| get_neighbors | 1 hop + filtros de relação |
-| shortest_path | Caminho A→B |
+| `cg_generate_graph` | Extrai e grava GraphDocument |
+| `cg_graph_status` | Metadados, freshness, backends |
+| `cg_list_graphs` | Inventário |
+| `cg_query_graph` | Subgrafo por pergunta/escopo |
+| `cg_get_node` | Detalhe do símbolo |
+| `cg_get_neighbors` | 1 hop + filtros |
+| `cg_shortest_path` | Caminho A→B |
 
-## Documento
-
-Ver `docs/references/architecture-seams.md` e `docs/references/spec-code-graph-pack.md`.
-
-Hints: queries `readOnlyHint`; rebuild destructive/write.
+Hints: queries `readOnlyHint`; generate destructive/write (`enableMutations`).
