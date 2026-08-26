@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Nero-core pack: MCP code-graph for agents",
   "scripts": {
+    "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",

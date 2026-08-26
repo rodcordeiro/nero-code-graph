@@ -67,4 +67,4 @@ Completion: operational note cites evidence; no AST edges copied into knowledge 
 
 ## Tool card
 
-Full args and env: [tools.md](tools.md). Pack checkout pointers: `CONTEXT.md`, `.agents/references/routing.md`, `.agents/references/runtime.md`.
+Full args and env: [tools.md](tools.md). Pack checkout pointers: `CONTEXT.md`, `.agents/references/routing.md`, `.agents/references/runtime.md`, `docs/references/testing-plan.md`.

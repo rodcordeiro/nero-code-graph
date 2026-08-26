@@ -31,5 +31,7 @@ Artefato: `<bound>/.nero-code-graph/graph.json`.
 
 ## Smoke
 
-1. `NCG_ENABLE_MUTATIONS=true NCG_BOUND_ROOT=<tmp> npm run mcp`
+See [`docs/references/testing-plan.md`](../../docs/references/testing-plan.md) (L0–L4).
+
+1. `NCG_ENABLE_MUTATIONS=true NCG_BOUND_ROOT=<checkout> npm run mcp` via Inspector / Cursor / Codex (not a bare terminal).
 2. Client: `cg_generate_graph` → `cg_graph_status` → `cg_get_neighbors` on a known symbol.

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "nero-code-graph": {
+      "command": "node",
+      "args": [
+        "d:\\projetos\\personal\\nero-code-graph\\dist\\mcp\\stdio-main.js"
+      ],
+      "env": {
+        "NCG_ENABLE_MUTATIONS": "true"
+      }
+    }
+  }
+}

@@ -13,11 +13,12 @@ Pack **nero-core** (domínio `mcp`): MCP de code-graph estrutural — gera, gere
 | Quando | Onde |
 | --- | --- |
 | Identidade e regras rápidas | este `AGENTS.md` |
-| **Consumir o Pack (tools / Nero complement)** | skill `nero-code-graph` (`.cursor/skills/nero-code-graph/`) |
+| **Consumir o Pack (tools / Nero complement)** | skill `nero-code-graph` (`.agents/skills/nero-code-graph/`) |
 | Estrutura / runtime / contratos / segurança | `.agents/references/` |
 | Roteamento Nero vs code-graph vs FS | `.agents/references/routing.md` |
 | Guideline domínio MCP | `$nero` → `references/guidelines/mcp-guidelines.md` |
 | Spec e grill | `docs/references/spec-code-graph-pack.md` |
+| **Como testar (L0–L4)** | `docs/references/testing-plan.md` |
 | Perguntas abertas | `docs/references/open-questions.md` |
 | Backlog | GitHub Issues — `docs/backlog/README.md` |
 | Issue tracker / triage / domain-docs | `docs/agents/` |

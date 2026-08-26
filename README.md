@@ -9,6 +9,7 @@ Inspiração de produto: [Graphify](https://github.com/Graphify-Labs/graphify). 
 | Doc | Path |
 | --- | --- |
 | Spec | [`docs/references/spec-code-graph-pack.md`](docs/references/spec-code-graph-pack.md) |
+| Testing plan | [`docs/references/testing-plan.md`](docs/references/testing-plan.md) |
 | Perguntas abertas | [`docs/references/open-questions.md`](docs/references/open-questions.md) |
 | Grill | [`docs/references/grill-analysis-2026-08-26.md`](docs/references/grill-analysis-2026-08-26.md) |
 | Backlog | [`docs/backlog/`](docs/backlog/) |
