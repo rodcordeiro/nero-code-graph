@@ -43,6 +43,8 @@ Run `gh issue view <number> --comments`.
 
 See `docs/agents/iteration-workflow.md` — **current** iteration first; new tasks → **next** unless required for current or explicitly requested. Project: [Nero Scrum board](https://github.com/users/rodcordeiro/projects/14).
 
+**Hub:** coordination of Nero backlogs is centralized in [`nero-core`](https://github.com/rodcordeiro/nero-core) (`docs/agents/iteration-workflow.md` there). Do not invent a conflicting priority order in this pack alone.
+
 ## Wayfinding operations
 
 Used by `/wayfinder`. The **map** is a single issue with **child** issues as tickets.

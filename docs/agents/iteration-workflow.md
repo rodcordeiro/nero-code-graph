@@ -2,6 +2,14 @@
 
 Preferences for agents working this repo against the **Nero Scrum board** project (`https://github.com/users/rodcordeiro/projects/14`).
 
+## Hub (read first)
+
+**`nero-core`** centraliza a coordenação de backlog dos projetos Nero. Issues deste pack ficam em `rodcordeiro/nero-code-graph`, mas a prioridade do board é compartilhada.
+
+- Antes de começar: leia também [`nero-core/docs/agents/iteration-workflow.md`](https://github.com/rodcordeiro/nero-core/blob/main/docs/agents/iteration-workflow.md) (hub).
+- Não invente escopo em **current** neste pack enquanto o board tiver tickets `ready-for-agent` acordados em outro repo Nero — nem puxe Core “next” sem esvaziar **current** do pack quando for a prioridade ativa.
+- Novo trabalho deste pack → issues neste repo + board #14 (**next** por padrão).
+
 ## Rules
 
 1. **Current iteration first.** Before starting work, list open issues in the **current** iteration that are `ready-for-agent` (or otherwise actionable) and unblocked. Prefer those.
@@ -33,3 +41,4 @@ Seed migrate exception: this entire pack backlog was placed in **current** (Iter
 - Issues: GitHub (`docs/agents/issue-tracker.md`)
 - Labels: `docs/agents/triage-labels.md`
 - Project: Nero Scrum board (#14), Iteration field from the board’s iteration template
+- Hub: `rodcordeiro/nero-core` → `docs/agents/iteration-workflow.md`

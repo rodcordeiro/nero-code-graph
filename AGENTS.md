@@ -50,4 +50,4 @@ Single-context: root `CONTEXT.md` + `docs/adr/` (+ `.agents/references/` for che
 
 ### Iteration / Project board
 
-Nero Scrum board iterations: prefer **current** pending work; new tasks default to **next**. See `docs/agents/iteration-workflow.md`.
+Nero Scrum board iterations: prefer **current** pending work; new tasks default to **next**. See `docs/agents/iteration-workflow.md`. Hub de coordenação de backlog: `nero-core` (`docs/agents/iteration-workflow.md` lá).
