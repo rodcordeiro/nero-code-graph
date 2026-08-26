@@ -1,0 +1,4 @@
+export { CodeGraph, type CodeGraphOptions, type GraphStatus, type NeighborQuery } from "./code-graph.js";
+export { FixtureExtractor } from "./fixture-extractor.js";
+export { MemoryGraphStore } from "./memory-store.js";
+export type { Extractor, GraphStore } from "./ports.js";

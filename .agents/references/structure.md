@@ -1,22 +1,16 @@
 # Structure
 
-Checkout factual (2026-08-26):
+Checkout factual:
 
 ```text
 nero-code-graph/
-  AGENTS.md
-  CONTEXT.md
-  README.md
-  package.json
-  src/contracts/          # schemaVersion 1 types + Node.id
-  fixtures/minimal/       # graph.golden.json
-  tests/contracts/
-  docs/references/
-  docs/agents/
-  docs/backlog/           # seed index → GitHub Issues
-  .agents/references/
+  src/contracts/     # schemaVersion 1
+  src/codegraph/     # CodeGraph + FixtureExtractor + MemoryStore
+  src/store/         # ProjectArtifactStore + path allowlist
+  src/mcp/           # cg_* host + stdio entry
+  fixtures/minimal/
+  tests/
+  docs/
 ```
 
-Ainda **não** existem: entrypoint MCP, CodeGraph core, Extractor/Store adapters reais.
-
-Alvo: host MCP fino → CodeGraph → Extractor + GraphStore.
+Start MCP: `npm run mcp` (see `.agents/references/runtime.md`).
