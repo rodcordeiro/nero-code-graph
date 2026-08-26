@@ -17,7 +17,8 @@ Pack **nero-core** (domínio `mcp`): MCP de code-graph estrutural — gera, gere
 | Guideline domínio MCP | `$nero` → `references/guidelines/mcp-guidelines.md` |
 | Spec e grill | `docs/references/spec-code-graph-pack.md` |
 | Perguntas abertas | `docs/references/open-questions.md` |
-| Backlog | `docs/backlog/` |
+| Backlog (seed → GH) | `docs/backlog/README.md` — canônico: GitHub Issues |
+| Issue tracker / triage / domain-docs skills | `docs/agents/` |
 
 ## Regras rápidas
 
@@ -32,3 +33,21 @@ Pack **nero-core** (domínio `mcp`): MCP de code-graph estrutural — gera, gere
 | --- | --- |
 | Servidor/consumidor MCP | `$nero` + guideline mcp |
 | Knowledge workflow | `$nero` |
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues for this repo (`gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical roles: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `CONTEXT.md` + `docs/adr/` (+ `.agents/references/` for checkout ops). See `docs/agents/domain.md`.
+
+### Iteration / Project board
+
+Nero Scrum board iterations: prefer **current** pending work; new tasks default to **next**. See `docs/agents/iteration-workflow.md`.
