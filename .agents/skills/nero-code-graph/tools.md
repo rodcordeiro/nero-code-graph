@@ -53,7 +53,9 @@ Expect hops with `provenance: "EXTRACTED"` and `evidence.file` / `evidence.line`
 | `NCG_STRICT_FRESHNESS` | Refuse stale queries unless `allowStale` |
 | `NCG_KNOWLEDGE_ROOT` + `NCG_MIRROR_BLOB_ROOT` | Enable dual-write mirror |
 | `NCG_KNOWLEDGE_MANIFEST_PATH` | Manifest path under KR |
-| `NCG_USE_FIXTURE_EXTRACTOR` | Dev: golden fixture instead of TS AST |
+| `NCG_EXTRACTOR` | Force: `fixture` \| `typescript` \| `php`. Else host picks from bound-root signals. `php` → `extractor_unavailable:php` (no PHP Extractor yet) |
+| `NCG_USE_FIXTURE_EXTRACTOR` | Dev: golden fixture (`true` same as `NCG_EXTRACTOR=fixture`) |
+| `NCG_FIXTURE_GOLDEN` | Override FixtureExtractor golden path |
 
 Start (Pack checkout): `NCG_ENABLE_MUTATIONS=true NCG_BOUND_ROOT=<checkout> npm run mcp`
 
@@ -67,3 +69,4 @@ Smoke: generate → status → neighbors on a known method id.
 | `graph_not_indexed` | No artifact yet — generate |
 | `graph_stale` | Strict freshness and stale — rebuild or `allowStale` |
 | `node_not_found` / `path_not_found` | Id or path missing in current **GraphDocument** |
+| `extractor_unavailable:php` | Bound root (or `NCG_EXTRACTOR=php`) selected PHP; no PHP Extractor yet — fail closed |

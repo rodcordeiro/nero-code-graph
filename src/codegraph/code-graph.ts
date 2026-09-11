@@ -33,6 +33,7 @@ export type GraphStatus = {
   nodeCount: number;
   edgeCount: number;
   extractorId?: string;
+  extractorVersion?: string;
   stale: boolean;
   backend: StorageMode;
 };
@@ -109,6 +110,7 @@ export class CodeGraph {
       nodeCount: doc.nodes.length,
       edgeCount: doc.edges.length,
       extractorId: doc.extractorId,
+      extractorVersion: doc.extractorVersion,
       stale: await this.isStale(doc),
       backend: this.backend,
     };

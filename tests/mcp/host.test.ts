@@ -49,9 +49,15 @@ describe("MCP host cg_* tools", () => {
     const h = host(true);
     const gen = await h.cg_generate_graph({});
     expect(gen.isError).toBeUndefined();
+    const genBody = JSON.parse(gen.content[0].text);
+    expect(genBody.extractorId).toBe("fake");
+    expect(genBody.extractorVersion).toBe("0.0.0");
+
     const status = await h.cg_graph_status();
     const statusBody = JSON.parse(status.content[0].text);
     expect(statusBody.exists).toBe(true);
+    expect(statusBody.extractorId).toBe("fake");
+    expect(statusBody.extractorVersion).toBe("0.0.0");
 
     const neighbors = await h.cg_get_neighbors({
       nodeId: "method:src/orders/OrderService.ts#PlaceOrder",

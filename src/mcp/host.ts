@@ -67,6 +67,8 @@ export class CodeGraphMcpHost {
       sourceFingerprint: doc.sourceFingerprint,
       nodeCount: doc.nodes.length,
       edgeCount: doc.edges.length,
+      extractorId: doc.extractorId,
+      extractorVersion: doc.extractorVersion,
     });
   }
 

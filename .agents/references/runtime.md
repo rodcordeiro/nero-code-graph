@@ -20,7 +20,8 @@
 | `NCG_KNOWLEDGE_ROOT` | Optional KR root; with `NCG_MIRROR_BLOB_ROOT` enables dual write |
 | `NCG_MIRROR_BLOB_ROOT` | Opaque GraphDocument root **outside** KR (Q13) |
 | `NCG_KNOWLEDGE_MANIFEST_PATH` | Relative Manifest path under KR (default `knowledge/projects/local/code-graph.manifest.json`) |
-| `NCG_USE_FIXTURE_EXTRACTOR` | `true` → FixtureExtractor instead of TS AST (dev) |
+| `NCG_EXTRACTOR` | Force extractor: `fixture` \| `typescript` \| `php` (highest after fixture flag). Without override, host selects by bound-root signals (`package.json` / `tsconfig*` / `.ts*`, `composer.json` / `.php`). `php` fails closed (`extractor_unavailable:php`) until a PHP Extractor exists. |
+| `NCG_USE_FIXTURE_EXTRACTOR` | `true` → FixtureExtractor (same as `NCG_EXTRACTOR=fixture`; wins over language signals) |
 | `NCG_FIXTURE_GOLDEN` | Override FixtureExtractor golden path (dev) |
 
 When knowledge mirror is enabled, rebuild dual-writes: project `.nero-code-graph/graph.json` + Manifest in KR + opaque blob under `NCG_MIRROR_BLOB_ROOT`. Manifest never contains nodes/edges/`links:`.
