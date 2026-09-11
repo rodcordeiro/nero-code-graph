@@ -1,9 +1,9 @@
 # Patterns
 
-Pretendidos (ainda sem código):
+Observados no checkout:
 
-- **Facade MCP** sobre núcleo profundo (Pack pattern nero-core)
-- **Extractor pluggable** (Graphify code-only candidato)
-- **Dual GraphStore** — project_artifact primary; knowledge_mirror opcional
-- **Envelope de confiança** em toda query (repoKey, stale, backend)
+- **Facade MCP** sobre núcleo CodeGraph (Pack pattern nero-core)
+- **Extractor pluggable** — port `Extractor` + `resolveExtractor` por sinais / env
+- **Dual GraphStore** — project_artifact primary; knowledge_mirror opcional (Manifest only)
+- **Envelope de confiança** em generate/status/query (repoKey, stale, backend, extractor meta)
 - **Import-scoped calls** — sem homônimo frouxo cross-file

@@ -4,9 +4,9 @@ Pack **nero-core** (domínio `mcp`): MCP de code-graph estrutural — gera, gere
 
 | | |
 | --- | --- |
-| **Status** | MVP Iteration 1 — CodeGraph + TS Extractor + MCP stdio + freshness + optional knowledge_mirror |
+| **Status** | MVP + multi-lang extractors — CodeGraph + MCP stdio + freshness + optional knowledge_mirror |
 | **Entrypoint** | `npm run mcp` — ver `.agents/references/runtime.md` |
-| **Stack** | MCP stdio + núcleo CodeGraph; Extractor TS AST (fixture opt-in) |
+| **Stack** | MCP stdio + CodeGraph; extractors `typescript-ast` / `php-ast` / `dotnet-ast` (seleção por sinais + `NCG_EXTRACTOR`; fixture opt-in) |
 
 ## Como usar este contexto
 
