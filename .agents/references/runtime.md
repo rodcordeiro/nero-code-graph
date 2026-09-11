@@ -20,7 +20,7 @@
 | `NCG_KNOWLEDGE_ROOT` | Optional KR root; with `NCG_MIRROR_BLOB_ROOT` enables dual write |
 | `NCG_MIRROR_BLOB_ROOT` | Opaque GraphDocument root **outside** KR (Q13) |
 | `NCG_KNOWLEDGE_MANIFEST_PATH` | Relative Manifest path under KR (default `knowledge/projects/local/code-graph.manifest.json`) |
-| `NCG_EXTRACTOR` | Force extractor: `fixture` \| `typescript` \| `php` (highest after fixture flag). Without override, host selects by bound-root signals (`package.json` / `tsconfig*` / `.ts*`, `composer.json` / `.php`). `php` fails closed (`extractor_unavailable:php`) until a PHP Extractor exists. |
+| `NCG_EXTRACTOR` | Force extractor: `fixture` \| `typescript` \| `php` \| `dotnet` (highest after fixture flag). Without override, host selects by bound-root signals (`package.json` / `tsconfig*` / `.ts*`, `composer.json` / `.php`, `*.csproj` / `*.sln` / `global.json` / `.cs`). Tie-break when scores equal: typescript > php > dotnet. Unknown values → `extractor_unknown:<id>`. |
 | `NCG_USE_FIXTURE_EXTRACTOR` | `true` → FixtureExtractor (same as `NCG_EXTRACTOR=fixture`; wins over language signals) |
 | `NCG_FIXTURE_GOLDEN` | Override FixtureExtractor golden path (dev) |
 

@@ -1,0 +1,5 @@
+{
+  "name": "nero/php-pilot",
+  "description": "Minimal PHP fixture for PhpAstExtractor (mirrors ts-pilot)",
+  "require": {}
+}

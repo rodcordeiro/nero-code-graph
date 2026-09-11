@@ -6,11 +6,21 @@ import {
   FixtureExtractor,
   MemoryGraphStore,
 } from "../../src/codegraph/index.js";
+import { DotnetAstExtractor } from "../../src/extractors/dotnet-ast-extractor.js";
+import { PhpAstExtractor } from "../../src/extractors/php-ast-extractor.js";
 import { CodeGraphMcpHost } from "../../src/mcp/host.js";
 
 const goldenPath = join(
   dirname(fileURLToPath(import.meta.url)),
   "../../fixtures/minimal/graph.golden.json",
+);
+const phpPilotRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../fixtures/php-pilot",
+);
+const dotnetPilotRoot = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../fixtures/dotnet-pilot",
 );
 
 function host(mutations = true) {
@@ -68,5 +78,53 @@ describe("MCP host cg_* tools", () => {
     expect(body.envelope.backend).toBe("project_artifact");
     expect(body.payload.hops[0].provenance).toBe("EXTRACTED");
     expect(body.payload.hops[0].evidence.line).toBe(10);
+  });
+
+  it("PHP path: generate/status expose php-ast extractorId/version", async () => {
+    const cg = new CodeGraph({
+      extractor: new PhpAstExtractor({ boundRoot: phpPilotRoot }),
+      store: new MemoryGraphStore(),
+    });
+    const h = new CodeGraphMcpHost({
+      codeGraph: cg,
+      enableMutations: true,
+      defaultRepoKey: "php-pilot",
+      defaultRootLabel: "fixtures/php-pilot",
+    });
+    const gen = await h.cg_generate_graph({});
+    expect(gen.isError).toBeUndefined();
+    const genBody = JSON.parse(gen.content[0].text);
+    expect(genBody.extractorId).toBe("php-ast");
+    expect(genBody.extractorVersion).toBe("0.1.0");
+    expect(genBody.nodeCount).toBeGreaterThan(0);
+
+    const status = await h.cg_graph_status();
+    const statusBody = JSON.parse(status.content[0].text);
+    expect(statusBody.extractorId).toBe("php-ast");
+    expect(statusBody.extractorVersion).toBe("0.1.0");
+  });
+
+  it(".NET path: generate/status expose dotnet-ast extractorId/version", async () => {
+    const cg = new CodeGraph({
+      extractor: new DotnetAstExtractor({ boundRoot: dotnetPilotRoot }),
+      store: new MemoryGraphStore(),
+    });
+    const h = new CodeGraphMcpHost({
+      codeGraph: cg,
+      enableMutations: true,
+      defaultRepoKey: "dotnet-pilot",
+      defaultRootLabel: "fixtures/dotnet-pilot",
+    });
+    const gen = await h.cg_generate_graph({});
+    expect(gen.isError).toBeUndefined();
+    const genBody = JSON.parse(gen.content[0].text);
+    expect(genBody.extractorId).toBe("dotnet-ast");
+    expect(genBody.extractorVersion).toBe("0.1.0");
+    expect(genBody.nodeCount).toBeGreaterThan(0);
+
+    const status = await h.cg_graph_status();
+    const statusBody = JSON.parse(status.content[0].text);
+    expect(statusBody.extractorId).toBe("dotnet-ast");
+    expect(statusBody.extractorVersion).toBe("0.1.0");
   });
 });

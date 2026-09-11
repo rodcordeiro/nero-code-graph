@@ -2,15 +2,17 @@ import { readdirSync, statSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  DotnetAstExtractor,
   FixtureExtractor,
+  PhpAstExtractor,
   TypescriptAstExtractor,
   type Extractor,
 } from "../codegraph/index.js";
 
 /** Languages the host can select (fixture is env-only). */
-export type LanguageId = "typescript" | "php" | "fixture";
+export type LanguageId = "typescript" | "php" | "dotnet" | "fixture";
 
-export type DetectedLanguage = "typescript" | "php";
+export type DetectedLanguage = "typescript" | "php" | "dotnet";
 
 export type ResolveExtractorOptions = {
   boundRoot: string;
@@ -29,6 +31,8 @@ export type ResolveExtractorResult = {
 const SKIP_DIRS = new Set([
   "node_modules",
   "vendor",
+  "bin",
+  "obj",
   "dist",
   ".nero-code-graph",
   ".git",
@@ -36,6 +40,7 @@ const SKIP_DIRS = new Set([
 
 const TS_EXTS = new Set([".ts", ".tsx", ".mts", ".cts"]);
 const PHP_EXT = ".php";
+const CS_EXT = ".cs";
 
 /** Manifest signals weigh more than a single source file. */
 const MANIFEST_WEIGHT = 100;
@@ -49,22 +54,31 @@ function isTsConfigName(name: string): boolean {
   return name === "tsconfig.json" || /^tsconfig\..+\.json$/i.test(name);
 }
 
+function isCsprojName(name: string): boolean {
+  return /\.csproj$/i.test(name);
+}
+
+function isSlnName(name: string): boolean {
+  return /\.sln$/i.test(name);
+}
+
 export type LanguageScores = {
   typescript: number;
   php: number;
+  dotnet: number;
 };
 
 /**
  * Score bound-root signals for primary language.
  *
  * Score = (manifest hits × MANIFEST_WEIGHT) + extension file count.
- * Highest score wins. On a tie (including both zero), prefer typescript so
- * empty/unknown roots keep the historical default and mixed equal signals
- * do not silently pick PHP. PHP-only checkouts (composer and/or .php, no TS)
- * must not select typescript.
+ * Highest score wins. Tie-break (including all zero): prefer
+ * typescript > php > dotnet so empty/unknown roots keep the historical
+ * default, PHP wins over a new equal .NET score, and mixed equal signals
+ * do not silently pick the newest language.
  */
 export function scoreBoundRootSignals(boundRoot: string): LanguageScores {
-  const scores: LanguageScores = { typescript: 0, php: 0 };
+  const scores: LanguageScores = { typescript: 0, php: 0, dotnet: 0 };
 
   const walk = (dir: string) => {
     let entries: string[];
@@ -90,10 +104,17 @@ export function scoreBoundRootSignals(boundRoot: string): LanguageScores {
         scores.typescript += MANIFEST_WEIGHT;
       } else if (name === "composer.json") {
         scores.php += MANIFEST_WEIGHT;
+      } else if (
+        isCsprojName(name) ||
+        isSlnName(name) ||
+        name === "global.json"
+      ) {
+        scores.dotnet += MANIFEST_WEIGHT;
       }
       const ext = extname(name).toLowerCase();
       if (TS_EXTS.has(ext)) scores.typescript += 1;
       else if (ext === PHP_EXT) scores.php += 1;
+      else if (ext === CS_EXT) scores.dotnet += 1;
     }
   };
 
@@ -103,11 +124,15 @@ export function scoreBoundRootSignals(boundRoot: string): LanguageScores {
 
 /**
  * Pick primary language from bound-root signals (no env). Empty/unknown → typescript.
+ * On equal scores: typescript > php > dotnet (see scoreBoundRootSignals).
  */
 export function detectPrimaryLanguage(boundRoot: string): DetectedLanguage {
   const scores = scoreBoundRootSignals(boundRoot);
-  if (scores.php > scores.typescript) return "php";
-  return "typescript";
+  const max = Math.max(scores.typescript, scores.php, scores.dotnet);
+  if (max === 0) return "typescript";
+  if (scores.typescript === max) return "typescript";
+  if (scores.php === max) return "php";
+  return "dotnet";
 }
 
 function normalizeExtractorEnv(raw: string | undefined): string | undefined {
@@ -119,12 +144,11 @@ function normalizeExtractorEnv(raw: string | undefined): string | undefined {
 /**
  * Resolve Extractor with env override precedence (highest first):
  * 1. NCG_USE_FIXTURE_EXTRACTOR=true OR NCG_EXTRACTOR=fixture → FixtureExtractor
- * 2. NCG_EXTRACTOR=typescript | php → force that language (ignore signals)
+ * 2. NCG_EXTRACTOR=typescript | php | dotnet → force that language (ignore signals)
  * 3. Else detect from bound-root signals
  * 4. Fallback if no signals: typescript
  *
- * PHP has no Extractor yet — fail closed with `extractor_unavailable:php`
- * (must not fall through to TypescriptAstExtractor).
+ * Unknown NCG_EXTRACTOR values fail closed (`extractor_unknown:<value>`).
  */
 export function resolveExtractor(
   options: ResolveExtractorOptions,
@@ -152,7 +176,11 @@ export function resolveExtractor(
   let language: DetectedLanguage;
   let reason: string;
 
-  if (extractorEnv === "typescript" || extractorEnv === "php") {
+  if (
+    extractorEnv === "typescript" ||
+    extractorEnv === "php" ||
+    extractorEnv === "dotnet"
+  ) {
     language = extractorEnv;
     reason = `env:NCG_EXTRACTOR=${extractorEnv}`;
   } else if (extractorEnv !== undefined) {
@@ -160,10 +188,14 @@ export function resolveExtractor(
   } else {
     const scores = scoreBoundRootSignals(boundRoot);
     language = detectPrimaryLanguage(boundRoot);
-    if (scores.typescript === 0 && scores.php === 0) {
+    if (
+      scores.typescript === 0 &&
+      scores.php === 0 &&
+      scores.dotnet === 0
+    ) {
       reason = "fallback:typescript";
     } else {
-      reason = `signals:${language}(ts=${scores.typescript},php=${scores.php})`;
+      reason = `signals:${language}(ts=${scores.typescript},php=${scores.php},dotnet=${scores.dotnet})`;
     }
   }
 
@@ -176,7 +208,18 @@ function mapLanguageToExtractor(
   reason: string,
 ): ResolveExtractorResult {
   if (language === "php") {
-    throw new Error("extractor_unavailable:php");
+    return {
+      extractor: new PhpAstExtractor({ boundRoot }),
+      language: "php",
+      reason,
+    };
+  }
+  if (language === "dotnet") {
+    return {
+      extractor: new DotnetAstExtractor({ boundRoot }),
+      language: "dotnet",
+      reason,
+    };
   }
   return {
     extractor: new TypescriptAstExtractor({ boundRoot }),

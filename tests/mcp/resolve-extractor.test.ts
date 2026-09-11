@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { DotnetAstExtractor } from "../../src/extractors/dotnet-ast-extractor.js";
+import { PhpAstExtractor } from "../../src/extractors/php-ast-extractor.js";
 import { TypescriptAstExtractor } from "../../src/extractors/typescript-ast-extractor.js";
 import {
   detectPrimaryLanguage,
@@ -12,6 +14,8 @@ import {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const pilotRoot = join(root, "fixtures/ts-pilot");
+const phpPilotRoot = join(root, "fixtures/php-pilot");
+const dotnetPilotRoot = join(root, "fixtures/dotnet-pilot");
 const goldenPath = join(root, "fixtures/minimal/graph.golden.json");
 
 function tempRoot(prefix: string): string {
@@ -47,14 +51,26 @@ describe("resolveExtractor / bound-root signals", () => {
     );
   });
 
-  it("PHP-looking root (composer + .php) fails closed", () => {
+  it("PHP-looking root (composer + .php) resolves PhpAstExtractor", () => {
     const dir = tempRoot("ncg-php-sig-");
     write("composer.json", dir, "{}");
     write("src/Hello.php", dir, "<?php class Hello {}\n");
     expect(detectPrimaryLanguage(dir)).toBe("php");
-    expect(() => resolveExtractor({ boundRoot: dir, env: {} })).toThrow(
-      "extractor_unavailable:php",
-    );
+    const resolved = resolveExtractor({ boundRoot: dir, env: {} });
+    expect(resolved.language).toBe("php");
+    expect(resolved.extractor.id).toBe("php-ast");
+    expect(resolved.extractor).toBeInstanceOf(PhpAstExtractor);
+  });
+
+  it("php-pilot fixture resolves PhpAstExtractor via signals", () => {
+    const resolved = resolveExtractor({
+      boundRoot: phpPilotRoot,
+      env: {},
+    });
+    expect(resolved.language).toBe("php");
+    expect(resolved.extractor.id).toBe("php-ast");
+    expect(resolved.extractor).toBeInstanceOf(PhpAstExtractor);
+    expect(detectPrimaryLanguage(phpPilotRoot)).toBe("php");
   });
 
   it("env fixture override wins even with TS signals", () => {
@@ -92,16 +108,18 @@ describe("resolveExtractor / bound-root signals", () => {
     expect(resolved.reason).toBe("env:NCG_EXTRACTOR=typescript");
   });
 
-  it("env NCG_EXTRACTOR=php fails closed without falling through to TS", () => {
+  it("env NCG_EXTRACTOR=php selects PhpAstExtractor without falling through to TS", () => {
     const dir = tempRoot("ncg-force-php-");
     write("package.json", dir, "{}");
     write("src/app.ts", dir, "export const x = 1;\n");
-    expect(() =>
-      resolveExtractor({
-        boundRoot: dir,
-        env: { NCG_EXTRACTOR: "php" },
-      }),
-    ).toThrow("extractor_unavailable:php");
+    const resolved = resolveExtractor({
+      boundRoot: dir,
+      env: { NCG_EXTRACTOR: "php" },
+    });
+    expect(resolved.language).toBe("php");
+    expect(resolved.extractor.id).toBe("php-ast");
+    expect(resolved.extractor).toBeInstanceOf(PhpAstExtractor);
+    expect(resolved.reason).toBe("env:NCG_EXTRACTOR=php");
   });
 
   it("empty root falls back to typescript", () => {
@@ -122,5 +140,85 @@ describe("resolveExtractor / bound-root signals", () => {
     expect(doc.edges.length).toBeGreaterThan(0);
     expect(doc.extractorId).toBe("typescript-ast");
     expect(doc.extractorVersion).toBeTruthy();
+  });
+
+  it("PHP non-regression: PhpAstExtractor on php-pilot yields nodes/edges + envelope fields", async () => {
+    const resolved = resolveExtractor({ boundRoot: phpPilotRoot, env: {} });
+    const doc = await resolved.extractor.extract({
+      repoKey: "php-pilot",
+      rootLabel: "fixtures/php-pilot",
+    });
+    expect(doc.nodes.length).toBeGreaterThan(0);
+    expect(doc.edges.length).toBeGreaterThan(0);
+    expect(doc.extractorId).toBe("php-ast");
+    expect(doc.extractorVersion).toBe("0.1.0");
+  });
+
+  it(".NET-looking root (csproj + .cs) resolves DotnetAstExtractor", () => {
+    const dir = tempRoot("ncg-dotnet-sig-");
+    write("App.csproj", dir, "<Project Sdk=\"Microsoft.NET.Sdk\" />\n");
+    write("src/Hello.cs", dir, "namespace App; public class Hello {}\n");
+    expect(detectPrimaryLanguage(dir)).toBe("dotnet");
+    const resolved = resolveExtractor({ boundRoot: dir, env: {} });
+    expect(resolved.language).toBe("dotnet");
+    expect(resolved.extractor.id).toBe("dotnet-ast");
+    expect(resolved.extractor).toBeInstanceOf(DotnetAstExtractor);
+  });
+
+  it("dotnet-pilot fixture resolves DotnetAstExtractor via signals", () => {
+    const resolved = resolveExtractor({
+      boundRoot: dotnetPilotRoot,
+      env: {},
+    });
+    expect(resolved.language).toBe("dotnet");
+    expect(resolved.extractor.id).toBe("dotnet-ast");
+    expect(resolved.extractor).toBeInstanceOf(DotnetAstExtractor);
+    expect(detectPrimaryLanguage(dotnetPilotRoot)).toBe("dotnet");
+  });
+
+  it("global.json and .sln count as .NET manifests", () => {
+    const dir = tempRoot("ncg-dotnet-manifest-");
+    write("global.json", dir, '{ "sdk": { "version": "8.0.100" } }\n');
+    write("App.sln", dir, "\n");
+    write("src/A.cs", dir, "namespace A; public class A {}\n");
+    const scores = scoreBoundRootSignals(dir);
+    expect(scores.dotnet).toBeGreaterThan(scores.typescript);
+    expect(scores.dotnet).toBeGreaterThan(scores.php);
+    expect(detectPrimaryLanguage(dir)).toBe("dotnet");
+  });
+
+  it("env NCG_EXTRACTOR=dotnet forces DotnetAstExtractor even with TS signals", () => {
+    const dir = tempRoot("ncg-force-dotnet-");
+    write("package.json", dir, "{}");
+    write("src/app.ts", dir, "export const x = 1;\n");
+    const resolved = resolveExtractor({
+      boundRoot: dir,
+      env: { NCG_EXTRACTOR: "dotnet" },
+    });
+    expect(resolved.language).toBe("dotnet");
+    expect(resolved.extractor.id).toBe("dotnet-ast");
+    expect(resolved.extractor).toBeInstanceOf(DotnetAstExtractor);
+    expect(resolved.reason).toBe("env:NCG_EXTRACTOR=dotnet");
+  });
+
+  it("tie between php and dotnet prefers php (deterministic; typescript preferred when also tied)", () => {
+    const dir = tempRoot("ncg-php-dotnet-tie-");
+    write("composer.json", dir, "{}");
+    write("App.csproj", dir, "<Project Sdk=\"Microsoft.NET.Sdk\" />\n");
+    const scores = scoreBoundRootSignals(dir);
+    expect(scores.php).toBe(scores.dotnet);
+    expect(detectPrimaryLanguage(dir)).toBe("php");
+  });
+
+  it(".NET non-regression: DotnetAstExtractor on dotnet-pilot yields nodes/edges + envelope fields", async () => {
+    const resolved = resolveExtractor({ boundRoot: dotnetPilotRoot, env: {} });
+    const doc = await resolved.extractor.extract({
+      repoKey: "dotnet-pilot",
+      rootLabel: "fixtures/dotnet-pilot",
+    });
+    expect(doc.nodes.length).toBeGreaterThan(0);
+    expect(doc.edges.length).toBeGreaterThan(0);
+    expect(doc.extractorId).toBe("dotnet-ast");
+    expect(doc.extractorVersion).toBe("0.1.0");
   });
 });
