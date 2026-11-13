@@ -16,6 +16,29 @@ Disclosed from [SKILL.md](SKILL.md). Single source for tool shapes and env.
 
 Shared query arg: `allowStale` (boolean). Required when `NCG_STRICT_FRESHNESS=true` and the graph is stale.
 
+### Keyword query pages
+
+`cg_query_graph({ question, limit?, cursor?, allowStale? })` returns at most
+`limit` entries in each of `payload.hops` and `payload.matchedNodeIds` (default
+25; integer 1–100). `payload.page` includes the applied `limit`,
+`totalMatchedNodes`, `totalHops`, and `truncated`.
+
+If `page.nextCursor` is present, repeat the **exact same question** with that
+cursor until `truncated` is false. Nodes and hops advance independently; after
+one array is exhausted, later pages may contain entries only in the other. Hop
+endpoints need not be among the matched nodes of that page. Do not interpret the
+first page as a complete list of callers.
+
+```text
+cg_query_graph({ question: "PlaceOrder", limit: 10 })
+cg_query_graph({ question: "PlaceOrder", limit: 10, cursor: "<page.nextCursor>" })
+```
+
+Cursors are opaque and tied to the query and indexed artifact. Rebuilds or graph
+changes invalidate continuation: restart from the first page on
+`invalid_query_cursor`. The schemaVersion and envelope are unchanged; large
+responses are now paginated even when `limit` is omitted.
+
 ### Neighbors filters
 
 - `direction`: `outgoing` \| `incoming` \| `both`
@@ -32,7 +55,45 @@ cg_get_neighbors({
 })
 ```
 
-Expect hops with `provenance: "EXTRACTED"` and `evidence.file` / `evidence.line`.
+Inspect each hop's provenance and `evidence.file` / `evidence.line`.
+`EXTRACTED` is a resolved structural relation; `INFERRED` is a likely relation;
+`AMBIGUOUS` is a candidate, not a confirmed caller. Do not promote a candidate
+to a confirmed impact merely because it is the only returned candidate.
+
+### Classes and method calls
+
+`calls` edges join method nodes. A class query with `relationFilter: ["calls"]`
+does not aggregate the calls of its methods. First get the class's outgoing
+`method` edges, then query the resulting method IDs with the `calls` filter.
+Class neighbors without that filter can include these structural membership edges.
+
+### Extractor resolution limits and upgrades
+
+Rebuild artifacts created by extractor version `0.1.0` after upgrading to
+`0.1.1`. Extractor ID/version drift marks the artifact stale even when the
+consumer's source fingerprint is unchanged. Strict freshness refuses it until
+rebuild (unless `allowStale` is explicitly requested).
+
+- C#: immediate class/interface members become methods, including implicit-private,
+  abstract and expression-bodied members. Lambdas, delegates and local functions
+  do not become method nodes; their calls belong to the containing method.
+- C#: supported receiver sources include declared fields/parameters/locals,
+  `var x = new T()`, `GetRequiredService<T>()` and known method return types.
+  `Task<T>` / `ValueTask<T>` returns unwrap only when the initializer uses `await`.
+  Interfaces are explicit destinations; implementation dispatch is not inferred
+  from DI configuration. Namespace expansion produces `INFERRED` file imports.
+- C#: this remains a lightweight structural scan, not Roslyn. Aliases, inheritance,
+  extension methods, complex expression chains and multiple namespaces per file
+  do not have full semantic resolution. Unresolved receiver calls produce
+  `AMBIGUOUS` reachable candidates or are omitted. Canonical v1 IDs still collapse
+  same-name methods within a file; such destination collisions stay ambiguous.
+- TypeScript: compiler-resolved indexed methods can be confirmed; unresolved
+  receivers use ambiguous import-reachable candidates. Compiler options are
+  conservative defaults; consumer tsconfig aliases are not loaded.
+- PHP: simple typed properties and explicit static class receivers can resolve;
+  unsupported/dynamic receivers use ambiguous include-reachable candidates.
+
+Freshness records the sources and extractor, not completeness of language coverage.
 
 ## Storage
 
@@ -69,4 +130,6 @@ Smoke: generate → status → neighbors on a known method id.
 | `graph_not_indexed` | No artifact yet — generate |
 | `graph_stale` | Strict freshness and stale — rebuild or `allowStale` |
 | `node_not_found` / `path_not_found` | Id or path missing in current **GraphDocument** |
+| `invalid_query_limit` | Core query limit outside integer 1–100; MCP also validates the argument |
+| `invalid_query_cursor` | Malformed cursor, different question, or changed/rebuilt artifact; restart query |
 | `extractor_unknown:<id>` | `NCG_EXTRACTOR` set to an unsupported value |

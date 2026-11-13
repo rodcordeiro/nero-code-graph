@@ -50,6 +50,28 @@ export type QueryOptions = {
   allowStale?: boolean;
 };
 
+export const DEFAULT_QUERY_LIMIT = 25;
+export const MAX_QUERY_LIMIT = 100;
+
+export type KeywordQueryOptions = QueryOptions & {
+  /** Maximum entries in each result array (1–100, default 25). */
+  limit?: number;
+  /** Opaque continuation returned by the preceding page of this query. */
+  cursor?: string;
+};
+
+export type KeywordQueryPayload = {
+  hops: QueryHop[];
+  matchedNodeIds: string[];
+  page: {
+    limit: number;
+    totalMatchedNodes: number;
+    totalHops: number;
+    truncated: boolean;
+    nextCursor?: string;
+  };
+};
+
 function contentHash(doc: GraphDocument): string {
   return createHash("sha256")
     .update(JSON.stringify({ nodes: doc.nodes, edges: doc.edges }))
@@ -218,12 +240,51 @@ export class CodeGraph {
 
   async queryGraph(
     question: string,
-    options?: QueryOptions,
-  ): Promise<QueryResponse<{ hops: QueryHop[]; matchedNodeIds: string[] } | { error: string }>> {
+    options?: KeywordQueryOptions,
+  ): Promise<QueryResponse<KeywordQueryPayload | { error: string }>> {
     const doc = await this.requireDoc();
     const envelope = await this.envelope(doc);
     const blocked = this.refuseIfStale(envelope, options?.allowStale);
     if (blocked) return blocked;
+    const limit = options?.limit ?? DEFAULT_QUERY_LIMIT;
+    if (!Number.isInteger(limit) || limit < 1 || limit > MAX_QUERY_LIMIT) {
+      return { envelope, payload: { error: "invalid_query_limit" } };
+    }
+    // Bind continuation to the exact query and artifact, including rebuilds
+    // which leave the source fingerprint unchanged.
+    const scope = createHash("sha256")
+      .update(JSON.stringify({
+        question,
+        target: doc.target,
+        builtAt: doc.builtAt,
+        sourceFingerprint: doc.sourceFingerprint,
+        gitCommit: doc.gitCommit,
+        extractorId: doc.extractorId,
+        extractorVersion: doc.extractorVersion,
+        contentHash: envelope.contentHash,
+      }))
+      .digest("hex");
+    let offset = 0;
+    if (options?.cursor !== undefined) {
+      try {
+        if (options.cursor.length > 512 || !/^[A-Za-z0-9_-]+$/.test(options.cursor)) {
+          throw new Error("invalid_query_cursor");
+        }
+        const cursor: unknown = JSON.parse(Buffer.from(options.cursor, "base64url").toString("utf8"));
+        if (
+          !cursor || typeof cursor !== "object" ||
+          !("v" in cursor) || cursor.v !== 1 ||
+          !("scope" in cursor) || cursor.scope !== scope ||
+          !("offset" in cursor) || typeof cursor.offset !== "number" ||
+          !Number.isSafeInteger(cursor.offset) || cursor.offset < 1
+        ) {
+          throw new Error("invalid_query_cursor");
+        }
+        offset = cursor.offset;
+      } catch {
+        return { envelope, payload: { error: "invalid_query_cursor" } };
+      }
+    }
     const tokens = question
       .toLowerCase()
       .split(/[^a-z0-9_#./:-]+/i)
@@ -232,25 +293,44 @@ export class CodeGraph {
       const hay = `${n.id} ${n.name}`.toLowerCase();
       return tokens.some((t) => hay.includes(t));
     });
-    if (matched.length === 0) {
-      return { envelope, payload: { hops: [], matchedNodeIds: [] } };
-    }
     const ids = new Set(matched.map((n) => n.id));
     const hops: QueryHop[] = [];
+    let totalHops = 0;
     for (const edge of doc.edges) {
       if (ids.has(edge.from) || ids.has(edge.to)) {
-        hops.push({
-          from: edge.from,
-          to: edge.to,
-          kind: edge.kind,
-          provenance: edge.provenance,
-          evidence: edge.evidence,
-        });
+        if (totalHops >= offset && hops.length < limit) {
+          hops.push({
+            from: edge.from,
+            to: edge.to,
+            kind: edge.kind,
+            provenance: edge.provenance,
+            evidence: edge.evidence,
+          });
+        }
+        totalHops++;
       }
     }
+    const total = Math.max(ids.size, totalHops);
+    if (offset > 0 && offset >= total) {
+      return { envelope, payload: { error: "invalid_query_cursor" } };
+    }
+    const truncated = offset + limit < total;
+    const nextCursor = truncated
+      ? Buffer.from(JSON.stringify({ v: 1, scope, offset: offset + limit })).toString("base64url")
+      : undefined;
     return {
       envelope,
-      payload: { hops, matchedNodeIds: [...ids] },
+      payload: {
+        hops,
+        matchedNodeIds: [...ids].slice(offset, offset + limit),
+        page: {
+          limit,
+          totalMatchedNodes: ids.size,
+          totalHops,
+          truncated,
+          ...(nextCursor ? { nextCursor } : {}),
+        },
+      },
     };
   }
 
@@ -273,6 +353,12 @@ export class CodeGraph {
   }
 
   private async isStale(doc: GraphDocument): Promise<boolean> {
+    if (
+      doc.extractorId !== this.extractor.id ||
+      doc.extractorVersion !== this.extractor.version
+    ) {
+      return true;
+    }
     if (
       this.currentGitCommit &&
       doc.gitCommit &&

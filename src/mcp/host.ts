@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { CodeGraph } from "../codegraph/code-graph.js";
+import { MAX_QUERY_LIMIT, type CodeGraph } from "../codegraph/code-graph.js";
 import type { EdgeKind, Provenance } from "../contracts/types.js";
 
 export type McpHostOptions = {
@@ -92,11 +92,18 @@ export class CodeGraphMcpHost {
     });
   }
 
-  async cg_query_graph(args: { question: string; allowStale?: boolean }) {
+  async cg_query_graph(args: {
+    question: string;
+    allowStale?: boolean;
+    limit?: number;
+    cursor?: string;
+  }) {
     try {
       return jsonResult(
         await this.cg.queryGraph(args.question, {
           allowStale: args.allowStale,
+          limit: args.limit,
+          cursor: args.cursor,
         }),
       );
     } catch (e) {
@@ -153,6 +160,8 @@ export const generateSchema = {
 export const querySchema = {
   question: z.string(),
   allowStale: z.boolean().optional(),
+  limit: z.number().int().min(1).max(MAX_QUERY_LIMIT).optional(),
+  cursor: z.string().min(1).max(512).optional(),
 };
 
 export const nodeSchema = {

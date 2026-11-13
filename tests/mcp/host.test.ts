@@ -95,13 +95,13 @@ describe("MCP host cg_* tools", () => {
     expect(gen.isError).toBeUndefined();
     const genBody = JSON.parse(gen.content[0].text);
     expect(genBody.extractorId).toBe("php-ast");
-    expect(genBody.extractorVersion).toBe("0.1.0");
+    expect(genBody.extractorVersion).toBe("0.1.1");
     expect(genBody.nodeCount).toBeGreaterThan(0);
 
     const status = await h.cg_graph_status();
     const statusBody = JSON.parse(status.content[0].text);
     expect(statusBody.extractorId).toBe("php-ast");
-    expect(statusBody.extractorVersion).toBe("0.1.0");
+    expect(statusBody.extractorVersion).toBe("0.1.1");
   });
 
   it(".NET path: generate/status expose dotnet-ast extractorId/version", async () => {
@@ -119,12 +119,12 @@ describe("MCP host cg_* tools", () => {
     expect(gen.isError).toBeUndefined();
     const genBody = JSON.parse(gen.content[0].text);
     expect(genBody.extractorId).toBe("dotnet-ast");
-    expect(genBody.extractorVersion).toBe("0.1.0");
+    expect(genBody.extractorVersion).toBe("0.1.1");
     expect(genBody.nodeCount).toBeGreaterThan(0);
 
     const status = await h.cg_graph_status();
     const statusBody = JSON.parse(status.content[0].text);
     expect(statusBody.extractorId).toBe("dotnet-ast");
-    expect(statusBody.extractorVersion).toBe("0.1.0");
+    expect(statusBody.extractorVersion).toBe("0.1.1");
   });
 });

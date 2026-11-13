@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { makeNodeId } from "../contracts/node-id.js";
@@ -84,7 +84,7 @@ function isPathInsideRoot(root: string, candidate: string): boolean {
  */
 export class TypescriptAstExtractor implements Extractor {
   readonly id = "typescript-ast";
-  readonly version = "0.1.0";
+  readonly version = "0.1.1";
 
   constructor(private readonly options: TypescriptAstExtractorOptions) {}
 
@@ -102,18 +102,31 @@ export class TypescriptAstExtractor implements Extractor {
     const edges: GraphEdge[] = [];
     const methodByFile = new Map<string, Set<string>>();
     const importsByFile = new Map<string, string[]>();
+    const compilerOptions: ts.CompilerOptions = {
+      target: ts.ScriptTarget.Latest,
+      module: ts.ModuleKind.NodeNext,
+      moduleResolution: ts.ModuleResolutionKind.NodeNext,
+      noEmit: true,
+      types: [],
+    };
+    const host = ts.createCompilerHost(compilerOptions);
+    const libraryRoot = dirname(ts.getDefaultLibFilePath(compilerOptions));
+    const mayRead = (path: string) => isPathInsideRoot(root, path) ||
+      (isPathInsideRoot(libraryRoot, path) && path.endsWith(".d.ts"));
+    const readFile = host.readFile.bind(host);
+    const fileExists = host.fileExists.bind(host);
+    const getSourceFile = host.getSourceFile.bind(host);
+    host.readFile = (path) => mayRead(path) ? readFile(path) : undefined;
+    host.fileExists = (path) => mayRead(path) && fileExists(path);
+    host.getSourceFile = (path, ...args) => mayRead(path) ? getSourceFile(path, ...args) : undefined;
+    const program = ts.createProgram(files, compilerOptions, host);
+    const checker = program.getTypeChecker();
+    const methodIds = new Map<ts.Declaration, string>();
+    const declarationCounts = new Map<string, number>();
 
     for (const abs of files) {
       const fileRel = rel(root, abs);
-      const text = readFileSync(abs, "utf8");
-      // Strip string/template literals from fingerprint content later; do not store literals as nodes.
-      const sf = ts.createSourceFile(
-        fileRel,
-        text,
-        ts.ScriptTarget.Latest,
-        true,
-        fileRel.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
-      );
+      const sf = program.getSourceFile(abs)!;
 
       const fileId = makeNodeId({
         kind: "file",
@@ -198,6 +211,8 @@ export class TypescriptAstExtractor implements Extractor {
                 relativePath: fileRel,
                 symbol: methodName,
               });
+              methodIds.set(member, methodId);
+              declarationCounts.set(methodId, (declarationCounts.get(methodId) ?? 0) + 1);
               nodes.push({
                 id: methodId,
                 kind: "method",
@@ -234,8 +249,7 @@ export class TypescriptAstExtractor implements Extractor {
     // Second pass: import-scoped calls
     for (const abs of files) {
       const fileRel = rel(root, abs);
-      const text = readFileSync(abs, "utf8");
-      const sf = ts.createSourceFile(fileRel, text, ts.ScriptTarget.Latest, true);
+      const sf = program.getSourceFile(abs)!;
       const imported = importsByFile.get(abs) ?? [];
       let currentMethod: string | null = null;
 
@@ -251,23 +265,35 @@ export class TypescriptAstExtractor implements Extractor {
           const expr = node.expression;
           if (ts.isPropertyAccessExpression(expr) && ts.isIdentifier(expr.name)) {
             const called = expr.name.text;
-            for (const imp of imported) {
+            // A name match is only a candidate; confirmation requires a resolved declaration.
+            const symbol = checker.getSymbolAtLocation(expr.name);
+            const resolvedIds = new Set(
+              (symbol?.declarations ?? []).flatMap((declaration) => {
+                const id = methodIds.get(declaration);
+                return id ? [id] : [];
+              }),
+            );
+            const candidates = [...new Set(imported)].filter((imp) =>
+              methodByFile.get(imp)?.has(called),
+            );
+            for (const imp of candidates) {
               const methods = methodByFile.get(imp);
               if (methods?.has(called) && currentMethod) {
                 const calleeRel = rel(root, imp);
+                const calleeId = makeNodeId({
+                  kind: "method", relativePath: calleeRel, symbol: called,
+                });
+                const callerId = makeNodeId({
+                  kind: "method", relativePath: fileRel, symbol: currentMethod,
+                });
+                if (resolvedIds.size > 0 && !resolvedIds.has(calleeId)) continue;
                 edges.push({
-                  from: makeNodeId({
-                    kind: "method",
-                    relativePath: fileRel,
-                    symbol: currentMethod,
-                  }),
-                  to: makeNodeId({
-                    kind: "method",
-                    relativePath: calleeRel,
-                    symbol: called,
-                  }),
+                  from: callerId,
+                  to: calleeId,
                   kind: "calls",
-                  provenance: "EXTRACTED",
+                  provenance: resolvedIds.size === 1 && declarationCounts.get(calleeId) === 1 &&
+                    declarationCounts.get(callerId) === 1
+                    ? "EXTRACTED" : "AMBIGUOUS",
                   evidence: {
                     file: fileRel,
                     line:
@@ -275,7 +301,6 @@ export class TypescriptAstExtractor implements Extractor {
                       1,
                   },
                 });
-                break;
               }
             }
           }

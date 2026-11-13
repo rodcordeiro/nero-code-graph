@@ -53,7 +53,7 @@ export function createMcpServer(options: McpHostOptions): McpServer {
   server.registerTool(
     "cg_query_graph",
     {
-      description: "Query the code graph with a natural-language / keyword question.",
+      description: "Query the code graph by keywords (paginated; default limit 25, maximum 100). Follow payload.page.nextCursor for remaining results.",
       inputSchema: querySchema,
       annotations: { readOnlyHint: true },
     },

@@ -192,7 +192,26 @@ const CLASS_RE = /\bclass\s+([A-Za-z_][A-Za-z0-9_]*)\b/g;
 const FUNCTION_RE =
   /\b(?:(?:public|protected|private|static|final|abstract)\s+)*function\s+&?\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
 
-const CALL_RE = /(?:->|::)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+const CALL_RE = /(?:(\$this)\s*->\s*)?(\$?[A-Za-z_][A-Za-z0-9_]*)\s*(->|::)\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
+
+/** Resolve only explicit simple class receivers; unsupported expressions stay ambiguous. */
+function receiverClass(
+  call: RegExpExecArray,
+  classBody: string,
+  body: string,
+): string | null {
+  // Regex suffixes of qualified names/chains are not standalone class receivers.
+  if (/(?:\\|->|::|\.)\s*$/.test(body.slice(0, call.index))) return null;
+  if (call[1]) {
+    const property = call[2];
+    const declaration = new RegExp(
+      `\\b(?:public|protected|private)\\s+(?:readonly\\s+)?\\??([A-Za-z_][A-Za-z0-9_]*)\\s+\\$${property}\\s*(?:[;=])`,
+    ).exec(classBody);
+    return declaration?.[1] ?? null;
+  }
+  if (call[3] === "::" && !call[2].startsWith("$")) return call[2];
+  return null;
+}
 
 function findMatchingBrace(text: string, openIdx: number): number {
   let depth = 0;
@@ -269,7 +288,7 @@ function extractIncludes(
  */
 export class PhpAstExtractor implements Extractor {
   readonly id = "php-ast";
-  readonly version = "0.1.0";
+  readonly version = "0.1.1";
 
   constructor(private readonly options: PhpAstExtractorOptions) {}
 
@@ -292,6 +311,7 @@ export class PhpAstExtractor implements Extractor {
       Array<{ name: string; line: number; className: string | null }>
     >();
     const maskedByFile = new Map<string, string>();
+    const classesByFile = new Map<string, ClassHit[]>();
 
     for (const abs of files) {
       const fileRel = rel(root, abs);
@@ -334,6 +354,7 @@ export class PhpAstExtractor implements Extractor {
       }
 
       const classes = extractClasses(masked);
+      classesByFile.set(abs, classes);
       const methodHits = extractMethods(masked, classes);
       methodsInFile.set(abs, methodHits);
 
@@ -426,12 +447,25 @@ export class PhpAstExtractor implements Extractor {
         if (braceOpen < 0) continue;
         const braceClose = findMatchingBrace(masked, braceOpen);
         const body = masked.slice(braceOpen, braceClose + 1);
+        const owner = classesByFile.get(abs)?.find((cls) => cls.name === meth.className);
+        const classBody = owner ? masked.slice(owner.bodyStart, owner.bodyEnd) : "";
 
         CALL_RE.lastIndex = 0;
         let call: RegExpExecArray | null;
         while ((call = CALL_RE.exec(body)) !== null) {
-          const called = call[1];
-          for (const imp of imported) {
+          const called = call[4];
+          const receiver = /\b(?:namespace|use)\b/.test(masked)
+            ? null : receiverClass(call, classBody, body);
+          const candidates = [...new Set(imported)].filter((imp) =>
+            methodByFile.get(imp)?.has(called),
+          );
+          const resolved = receiver ? candidates.filter((imp) =>
+            !/\bnamespace\b/.test(maskedByFile.get(imp) ?? "") &&
+            methodsInFile.get(imp)?.some((candidate) =>
+              candidate.name === called && candidate.className === receiver,
+            ),
+          ) : [];
+          for (const imp of resolved.length ? resolved : candidates) {
             const methods = methodByFile.get(imp);
             if (methods?.has(called)) {
               const calleeRel = rel(root, imp);
@@ -448,10 +482,13 @@ export class PhpAstExtractor implements Extractor {
                   symbol: called,
                 }),
                 kind: "calls",
-                provenance: "EXTRACTED",
+                provenance: resolved.length === 1 && localMethods.filter(
+                  (candidate) => candidate.name === meth.name,
+                ).length === 1 && methodsInFile.get(imp)?.filter(
+                  (candidate) => candidate.name === called,
+                ).length === 1 ? "EXTRACTED" : "AMBIGUOUS",
                 evidence: { file: fileRel, line: evidenceLine },
               });
-              break;
             }
           }
         }

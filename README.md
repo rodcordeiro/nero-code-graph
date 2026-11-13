@@ -28,8 +28,18 @@ Override de linguagem: `NCG_EXTRACTOR=fixture|typescript|php|dotnet`. Sem overri
 
 - Nós: file / class / method  
 - Arestas: imports e calls **import-reachable**  
-- Proveniência: `EXTRACTED` / `INFERRED`  
+- Proveniência: `EXTRACTED` / `INFERRED` / `AMBIGUOUS`
 - Perguntas estruturais → `cg_*`; ops/decisões → Nero Knowledge (`nero_*`)
+
+Extratores `0.1.1` corrigem a confirmação indevida de chamadas homônimas.
+Regenere grafos `0.1.0`: a troca de extrator/versão passa a marcar o artefato
+como stale. Candidatos `AMBIGUOUS` não são callers confirmados; imports C#
+expandidos por namespace são `INFERRED`. Limites por linguagem e navegação
+classe → método → chamadas estão em [tools.md](.agents/skills/nero-code-graph/tools.md).
+
+`cg_query_graph` retorna páginas de até 25 nós e 25 arestas por padrão
+(`limit`: 1–100). Use `payload.page.nextCursor` com a mesma pergunta para
+continuar; a primeira página pode ser incompleta.
 
 ## Documentação
 

@@ -13,7 +13,7 @@ This pack builds a **code graph** from a project checkout. Agents use the MCP to
 | **GraphDocument** | Versioned graph snapshot (`schemaVersion`, nodes, edges, fingerprint). |
 | **Node** | `file`, `class`, or `method` in the checkout. |
 | **Edge** | Relation such as `imports` or `calls`, with provenance. |
-| **Provenance** | `EXTRACTED` (from source) or `INFERRED` (resolved). |
+| **Provenance** | `EXTRACTED` (resolved structure), `INFERRED` (likely relation), `AMBIGUOUS` (candidate). |
 | **Extractor** | Adapter that reads source and returns a `GraphDocument`. |
 | **GraphStore** | Adapter that reads/writes a `GraphDocument`. |
 | **project_artifact** | Graph file in the analyzed checkout (default `.nero-code-graph/`). |

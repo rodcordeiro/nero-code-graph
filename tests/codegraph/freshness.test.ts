@@ -15,6 +15,38 @@ const goldenPath = join(root, "fixtures/minimal/graph.golden.json");
 const pilotRoot = join(root, "fixtures/ts-pilot");
 
 describe("freshness (stale + strict + V5)", () => {
+  it.each([
+    { id: "replacement", version: "0.0.0" },
+    { id: "fake", version: "0.0.1" },
+  ])("marks extractor changes stale and requires rebuild for $id@$version", async ({ id, version }) => {
+    const store = new MemoryGraphStore();
+    const indexed = await new CodeGraph({
+      extractor: new FixtureExtractor(goldenPath), store,
+    }).rebuild({ repoKey: "migration", rootLabel: "fixture" });
+    const cg = new CodeGraph({
+      store,
+      strictFreshness: true,
+      extractor: {
+        id, version,
+        fingerprint: async () => indexed.sourceFingerprint,
+        extract: async (target) => ({
+          ...indexed, target, builtAt: new Date().toISOString(),
+          extractorId: id, extractorVersion: version,
+        }),
+      },
+    });
+    expect((await cg.status()).stale).toBe(true);
+    expect((await cg.queryGraph("PlaceOrder")).payload).toEqual({ error: "graph_stale" });
+    const allowed = await cg.queryGraph("PlaceOrder", { allowStale: true });
+    expect(allowed.envelope.stale).toBe(true);
+    expect("hops" in allowed.payload).toBe(true);
+    await cg.rebuild({ repoKey: "migration", rootLabel: "fixture" });
+    const status = await cg.status();
+    expect(status.stale).toBe(false);
+    expect(status.extractorId).toBe(id);
+    expect(status.extractorVersion).toBe(version);
+  });
+
   it("marks stale when HEAD diverges from indexed gitCommit", async () => {
     const store = new MemoryGraphStore();
     const indexed = new CodeGraph({

@@ -56,7 +56,7 @@ describe("DotnetAstExtractor (code-only)", () => {
     });
     expect(doc.nodes.length).toBeGreaterThan(0);
     expect(doc.extractorId).toBe("dotnet-ast");
-    expect(doc.extractorVersion).toBe("0.1.0");
+    expect(doc.extractorVersion).toBe("0.1.1");
     const blob = JSON.stringify(doc);
     expect(blob.includes("secret-should-not-appear")).toBe(false);
     for (const n of doc.nodes) {

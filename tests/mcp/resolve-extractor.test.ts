@@ -151,7 +151,7 @@ describe("resolveExtractor / bound-root signals", () => {
     expect(doc.nodes.length).toBeGreaterThan(0);
     expect(doc.edges.length).toBeGreaterThan(0);
     expect(doc.extractorId).toBe("php-ast");
-    expect(doc.extractorVersion).toBe("0.1.0");
+    expect(doc.extractorVersion).toBe("0.1.1");
   });
 
   it(".NET-looking root (csproj + .cs) resolves DotnetAstExtractor", () => {
@@ -219,6 +219,6 @@ describe("resolveExtractor / bound-root signals", () => {
     expect(doc.nodes.length).toBeGreaterThan(0);
     expect(doc.edges.length).toBeGreaterThan(0);
     expect(doc.extractorId).toBe("dotnet-ast");
-    expect(doc.extractorVersion).toBe("0.1.0");
+    expect(doc.extractorVersion).toBe("0.1.1");
   });
 });
